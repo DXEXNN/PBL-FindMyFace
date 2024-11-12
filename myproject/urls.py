@@ -19,6 +19,10 @@ from django.urls import path
 
 from myproject.accounts.views import UserViewSet
 
+#from . import views
+from django.conf import settings
+from django.conf.urls.static import static
+
 user_lookup = UserViewSet.as_view({
     'get': 'retrieve_key'
 })
@@ -32,3 +36,6 @@ urlpatterns = [
     # 회원 조회 페이지: 존재하지 않는 이메일일 경우 회원가입 페이지로 리다이렉트
     path('accounts/lookup/', user_lookup, name='user-lookup'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
