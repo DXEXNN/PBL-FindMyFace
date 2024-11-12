@@ -29,11 +29,7 @@ class CustomUser(AbstractBaseUser):
 
     #is_active = models.BooleanField(default=True)
     #is_staff = models.BooleanField(default=False)
-<<<<<<< HEAD
-    
-=======
 
->>>>>>> yj-branch
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
