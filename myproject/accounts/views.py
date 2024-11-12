@@ -17,9 +17,8 @@ class UserViewSet(viewsets.ViewSet):
         if serializer.is_valid():
             user = serializer.save()
             return Response({
-                'user_id': user.id,
+                'custom_id': user.custom_id,  # custom_id를 반환
                 'email': user.email,
-                'custom_id': user.custom_id,
                 'key': user.key  # key 값을 그대로 반환
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -27,7 +26,7 @@ class UserViewSet(viewsets.ViewSet):
     # 회원 조회
     def retrieve(self, request, pk=None):
         try:
-            user = CustomUser.objects.get(pk=pk)
+            user = CustomUser.objects.get(custom_id=pk)  # custom_id로 조회
             serializer = UserSerializer(user)
             return Response(serializer.data)
         except CustomUser.DoesNotExist:
@@ -35,12 +34,12 @@ class UserViewSet(viewsets.ViewSet):
 
     # 회원 key 조회
     def retrieve_key(self, request):
-        email = request.query_params.get('email')
-        if not email:
-            return Response({'error': '이메일을 제공해야 합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        custom_id = request.query_params.get('custom_id')  # custom_id로 검색
+        if not custom_id:
+            return Response({'error': 'custom_id를 제공해야 합니다.'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            user = CustomUser.objects.get(email=email)
+            user = CustomUser.objects.get(custom_id=custom_id)
             return Response({'key': user.key}, status=status.HTTP_200_OK)
         except CustomUser.DoesNotExist:
             return Response({'error': '사용자를 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)

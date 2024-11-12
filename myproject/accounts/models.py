@@ -22,7 +22,7 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, key=key, **extra_fields)
 
 class CustomUser(AbstractBaseUser):
-    custom_id = models.CharField(max_length=10, unique=True, editable=False)
+    custom_id = models.CharField(max_length=10, unique=True, primary_key=True, editable=False)  # PK로 설정
     email = models.EmailField(unique=True)
     key = models.CharField(max_length=16, editable=False, default='')  # 기본값 추가
     created_at = models.DateTimeField(auto_now_add=True)
