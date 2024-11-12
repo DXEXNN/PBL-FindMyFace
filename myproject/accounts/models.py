@@ -22,9 +22,9 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, key=key, **extra_fields)
 
 class CustomUser(AbstractBaseUser):
-    custom_id = models.CharField(max_length=10, unique=True, primary_key=True, editable=False)  # PK로 설정
+    custom_id = models.CharField(max_length=10, unique=True, editable=False)  # 고유 식별자 필드 추가
     email = models.EmailField(unique=True)
-    key = models.CharField(max_length=16, editable=False, default='')  # 기본값 추가
+    key = models.CharField(max_length=16, editable=False, default='')
     created_at = models.DateTimeField(auto_now_add=True)
 
     is_active = models.BooleanField(default=True)
@@ -41,7 +41,7 @@ class CustomUser(AbstractBaseUser):
             users_today = CustomUser.objects.filter(
                 created_at__date=datetime.now().date()
             ).count() + 1
-            self.custom_id = f"{date_str}_{users_today}"
+            self.custom_id = f"{date_str}_{users_today}"  # custom_id 생성
 
         if not self.key:  # key가 비어있는 경우에만 새로 생성
             self.key = ''.join(random.choices(string.ascii_letters + string.digits, k=16))

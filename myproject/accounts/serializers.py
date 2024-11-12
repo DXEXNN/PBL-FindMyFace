@@ -6,9 +6,11 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['custom_id', 'email', 'key']  # id를 제외하고 custom_id를 PK로 사용
-        read_only_fields = ['custom_id', 'key']  # custom_id와 key는 읽기 전용
+        fields = ['id', 'custom_id', 'email', 'key']  # id 필드 추가
+        read_only_fields = ['id', 'custom_id', 'key']
 
+    
+    
     def create(self, validated_data):
         email = validated_data['email']
         user = CustomUser(email=email)
