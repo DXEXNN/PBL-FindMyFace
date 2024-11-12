@@ -22,7 +22,7 @@ from myproject.accounts.views import UserViewSet
 
 
 user_lookup = UserViewSet.as_view({
-    'get': 'retrieve_key'
+    'post': 'retrieve_key'
 })
 
 urlpatterns = [
