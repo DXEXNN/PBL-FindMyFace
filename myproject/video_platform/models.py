@@ -1,18 +1,20 @@
 from django.db import models
+from django.conf import settings
 import uuid
 
 # Video 모델
 class Video(models.Model):
-    video_id = models.CharField(max_length=255, unique=True)
+    video_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # UUID로 고유 ID 생성
     video_name = models.CharField(max_length=255)
-    file_path = models.FileField(upload_to='videos/')  # 파일을 업로드할 경로
+    file_path = models.FileField(upload_to='videos/')  # 파일 업로드 경로
+    uploaded_at = models.DateTimeField(auto_now_add=True)  # 업로드 시간 추가
 
     def __str__(self):
         return self.video_name
 
 # VerificationCode 모델
 class VerificationCode(models.Model):
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)  # 사용자와 연결
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # 사용자와 연결
     verification_code = models.CharField(max_length=255, unique=True)
     video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='verification_codes', null=True, blank=True)
 
@@ -21,13 +23,14 @@ class VerificationCode(models.Model):
 
 # Search 모델
 class Search(models.Model):
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)  # 사용자가 검색한 기록
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # 사용자가 검색한 기록
     video = models.ForeignKey(Video, on_delete=models.CASCADE)  # 검색된 동영상
     search_date = models.DateTimeField(auto_now_add=True)  # 검색한 날짜와 시간 기록
 
     def __str__(self):
         return f"{self.user.username} searched for {self.video.video_name} on {self.search_date}"
 
+# Result 모델
 class Result(models.Model):
     video = models.ForeignKey(Video, on_delete=models.CASCADE)  # 비디오와 연결
     verification_code = models.ForeignKey(VerificationCode, on_delete=models.CASCADE, null=True, blank=True)  # 검증 코드와 연결 (선택적)

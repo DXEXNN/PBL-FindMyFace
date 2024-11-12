@@ -14,14 +14,12 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
-from django.urls import path
-
-from myproject.accounts.views import UserViewSet
-
-#from . import views
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import path, include
+from myproject.accounts.views import UserViewSet
+
 
 user_lookup = UserViewSet.as_view({
     'get': 'retrieve_key'
@@ -35,6 +33,9 @@ urlpatterns = [
 
     # 회원 조회 페이지: 존재하지 않는 이메일일 경우 회원가입 페이지로 리다이렉트
     path('accounts/lookup/', user_lookup, name='user-lookup'),
+    
+    # video_platform 앱의 URL 연결
+    path('video_platform/', include('myproject.video_platform.urls')),  # video_platform 관련 API
 ]
 
 if settings.DEBUG:

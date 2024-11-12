@@ -27,13 +27,16 @@ class CustomUser(AbstractBaseUser):
     key = models.CharField(max_length=16, editable=False, default='')  # 기본값 추가
     created_at = models.DateTimeField(auto_now_add=True)
 
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    
+    #is_active = models.BooleanField(default=True)
+    #is_staff = models.BooleanField(default=False)
+
     objects = CustomUserManager()
-    
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
+    
+    class Meta:
+        db_table = 'User'
 
     def save(self, *args, **kwargs):
         if not self.custom_id:
