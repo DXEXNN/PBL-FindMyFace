@@ -6,7 +6,7 @@ import uuid
 class Video(models.Model):
     video_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # UUID로 고유 ID 생성
     video_name = models.CharField(max_length=255)
-    file_path = models.FileField(upload_to='videos/')  # 파일 업로드 경로
+    file_path = models.FileField(upload_to='videos/')  # 파일 업로드 경로만 사용
     uploaded_at = models.DateTimeField(auto_now_add=True)  # 업로드 시간 추가
 
     def __str__(self):
