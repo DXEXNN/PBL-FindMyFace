@@ -21,6 +21,7 @@ from django.urls import path, include
 from myproject.accounts.views import UserViewSet
 
 
+
 user_lookup = UserViewSet.as_view({
     'get': 'retrieve_key'
 })
@@ -36,6 +37,8 @@ urlpatterns = [
     
     # video_platform 앱의 URL 연결
     path('video_platform/', include('myproject.video_platform.urls')),  # video_platform 관련 API
+
+    
 ]
 
 if settings.DEBUG:
