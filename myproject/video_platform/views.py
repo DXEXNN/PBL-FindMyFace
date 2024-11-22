@@ -2,7 +2,9 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Video
+from rest_framework.decorators import api_view  # api_view 데코레이터를 올바르게 가져옴
+from django.shortcuts import render, get_object_or_404
+from .models import Video, VerificationCode
 from .serializers import VideoSerializer
 import os
 
@@ -29,20 +31,13 @@ class VideoUploadView(APIView):
         serializer = VideoSerializer(video_instance)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-from rest_framework.views import APIView
-from .models import Video
-from .serializers import VideoSerializer
-from rest_framework.response import Response
-from rest_framework import status
-import os
-from django.conf import settings
 
 # Video List API
 class VideoListView(APIView):
     def get(self, request, *args, **kwargs):
         videos = Video.objects.all()
         serializer = VideoSerializer(videos, many=True)
-        
+
         # 파일 경로에 MEDIA_URL을 추가하여 실제 파일에 접근할 수 있게 함
         for video in serializer.data:
             video['file_path'] = request.build_absolute_uri(os.path.join(settings.MEDIA_URL, video['file_path']))
@@ -50,13 +45,7 @@ class VideoListView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-from rest_framework.decorators import api_view
-from .models import VerificationCode
-from django.shortcuts import get_object_or_404
-from rest_framework.response import Response
-from rest_framework import status
 # Verification Code Check API
-
 @api_view(['GET'])
 def get_verification_code(request, input_code):
     verification = get_object_or_404(VerificationCode, verification_code=input_code)
@@ -64,4 +53,26 @@ def get_verification_code(request, input_code):
         'user_id': verification.user.id,
         'verification_code': verification.verification_code
     }, status=status.HTTP_200_OK)
-    
+
+
+# Video Upload Page View
+def upload_video(request):
+    if request.method == 'POST':
+        video_file = request.FILES.get('file')
+        video_name = request.POST.get('video_name')
+
+        if not video_file or not video_name:
+            return render(request, 'upload.html', {'error': "Both video file and video name are required."})
+
+        # Save the video to the database
+        video_instance = Video(video_name=video_name, file_path=video_file)
+        video_instance.save()
+
+        return render(request, 'upload_success.html', {'video': video_instance})
+    return render(request, 'upload.html')
+
+
+# Video List Page View
+def video_list(request):
+    videos = Video.objects.all()
+    return render(request, 'home.html', {'videos': videos})

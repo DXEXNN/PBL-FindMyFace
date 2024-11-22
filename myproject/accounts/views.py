@@ -3,6 +3,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from .serializers import UserSerializer
 from .models import CustomUser
+from django.shortcuts import render
+
+# 일반 Django 뷰 함수로 작성
+def register_page(request):
+    return render(request, 'register.html')
 
 class UserViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]

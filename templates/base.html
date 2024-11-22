@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ASAP FIND MY FACE{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <!-- 공통 헤더 -->
+    <header>
+        <h1>ASAP <span>FIND MY FACE</span></h1>
+    </header>
+
+    <!-- 공통 네비게이션 바 -->
+    <aside class="sidebar">
+        <nav>
+            <ul>
+                <li><a href="{% url 'home' %}">🏠 HOME</a></li>
+                <li><a href="{% url 'find-my-face' %}">🔍 FIND MY FACE</a></li>
+                <li><a href="{% url 'upload' %}">📤 UPLOAD</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- 페이지별 컨텐츠 -->
+    <main>
+        {% block content %}
+        <!-- 페이지 내용이 들어갑니다 -->
+        {% endblock %}
+    </main>
+</body>
+</html>

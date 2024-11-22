@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}
+Video List - ASAP
+{% endblock %}
+
+{% block content %}
+<div class="list-container">
+    <h2>ASAP VIDEO PLATFORM</h2>
+    <p>Here are the uploaded videos.</p>
+
+    <ul class="video-list">
+        {% for video in videos %}
+        <li>
+            <h3>{{ video.video_name }}</h3>
+            <video controls>
+                <source src="{{ video.file_path }}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
