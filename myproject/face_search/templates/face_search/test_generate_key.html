@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Generate Key API</title>
+    <script>
+        function uploadImages(event) {
+            event.preventDefault(); // 기본 폼 제출 동작 방지
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const message = document.getElementById("loading-message");
+            const result = document.getElementById("result-message");
+            const startTime = Date.now(); // 처리 시작 시간 기록
+
+            // 로딩 메시지 표시
+            message.style.display = "block";
+            result.innerHTML = ""; // 결과 초기화
+
+            fetch(form.action, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-CSRFToken": form.querySelector('[name="csrfmiddlewaretoken"]').value
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    const endTime = Date.now(); // 처리 종료 시간 기록
+                    const duration = ((endTime - startTime) / 1000).toFixed(2); // 소요 시간 계산
+
+                    if (data.key) {
+                        // 경로에서 파일 이름만 추출하고 확장자 제거
+                        const fileNameWithoutExtension = data.key.split("\\").pop().replace(/\.pkl$/, "");
+
+                        result.innerHTML = `
+                            <p style="color: green;">Key generation successful!</p>
+                            <p>인증코드: <strong>${fileNameWithoutExtension}</strong></p>
+                            <p>Processing time: <strong>${duration} seconds</strong></p>
+                        `;
+                    } else {
+                        result.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                    }
+                })
+                .catch(error => {
+                    result.innerHTML = `<p style="color: red;">An unexpected error occurred: ${error}</p>`;
+                })
+                .finally(() => {
+                    message.style.display = "none"; // 로딩 메시지 숨김
+                });
+        }
+    </script>
+</head>
+<body>
+    <h1>Test Generate Key API</h1>
+    <form action="/face_search/create-face-key/" method="POST" enctype="multipart/form-data" onsubmit="uploadImages(event)">
+        {% csrf_token %}
+        <label for="images">Upload Images:</label>
+        <input type="file" id="images" name="images" multiple required>
+        <br><br>
+        <button type="submit">Generate Key</button>
+    </form>
+    <br>
+    <!-- 로딩 메시지 -->
+    <p id="loading-message" style="display: none; color: blue;">Generating key... Please wait.</p>
+    <!-- 결과 메시지 -->
+    <div id="result-message"></div>
+</body>
+</html>

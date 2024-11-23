@@ -19,8 +19,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 from myproject.accounts.views import UserViewSet
-
-
+from myproject.video_platform.views import upload_video  # upload_video 함수 추가
 
 user_lookup = UserViewSet.as_view({
     'get': 'retrieve_key'
@@ -28,6 +27,7 @@ user_lookup = UserViewSet.as_view({
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('face_search/', include('myproject.face_search.urls')),  # face_search 앱 URL 연결
     
     # 회원가입 페이지
     path('accounts/register', UserViewSet.as_view({'post': 'create'}), name='user-register'),  # 회원가입
@@ -38,7 +38,8 @@ urlpatterns = [
     # video_platform 앱의 URL 연결
     path('video_platform/', include('myproject.video_platform.urls')),  # video_platform 관련 API
 
-    
+    # HTML 렌더링용 video upload URL 추가
+    path('video_platform/upload/', upload_video, name='upload-video-html'),
 ]
 
 if settings.DEBUG:

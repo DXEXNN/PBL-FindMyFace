@@ -7,6 +7,11 @@ import sys
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
+
+    # 프로젝트 경로를 Python의 sys.path에 추가
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    sys.path.append(os.path.join(BASE_DIR, 'myproject'))
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
@@ -20,4 +25,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

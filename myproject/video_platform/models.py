@@ -11,6 +11,9 @@ class Video(models.Model):
 
     def __str__(self):
         return self.video_name
+    
+    class Meta:
+        app_label = 'video_platform'  # 앱 이름 명시
 
 # VerificationCode 모델
 class VerificationCode(models.Model):

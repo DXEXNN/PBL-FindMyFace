@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'myproject.accounts',
     'myproject.video_platform',
+    'myproject.face_search',  # face_search 앱 추가
 ]
 
 #AUTH_USER_MODEL = 'accounts.CustomUser' #계정 자동 삭제를 위한 모델 정의용
@@ -54,6 +55,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+        # 나머지 미들웨어 유지
+    'django.middleware.common.CommonMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',  # 이 라인을 주석 처리
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
 ]
 
 ROOT_URLCONF = 'myproject.urls'
@@ -61,8 +67,8 @@ ROOT_URLCONF = 'myproject.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
+        'DIRS': [],  # 전역 템플릿 디렉토리 추가 가능
+        'APP_DIRS': True,  # 앱 내부 templates 디렉토리 검색 활성화
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -132,6 +138,8 @@ STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
+
+# 개발 환경에서는 False로 설정
+CSRF_COOKIE_SECURE = False
