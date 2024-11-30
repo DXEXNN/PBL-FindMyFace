@@ -37,9 +37,10 @@ urlpatterns = [
     
     # video_platform 앱의 URL 연결
     path('video_platform/', include('myproject.video_platform.urls')),  # video_platform 관련 API
-
+    
     # HTML 렌더링용 video upload URL 추가
     path('video_platform/upload/', upload_video, name='upload-video-html'),
+    
 ]
 
 if settings.DEBUG:

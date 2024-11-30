@@ -1,148 +1,171 @@
-from django.conf import settings
-from django.shortcuts import render
-from django.shortcuts import get_object_or_404
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.views import APIView
-from .models import Video, VerificationCode
-from .serializers import VideoSerializer
-from .forms import VideoUploadForm
-from django.http import JsonResponse
-from face_search.utils import detect_face, extract_features  # 제공된 FaceNet 유틸리티 사용
 import os
+import json
 import pickle
 import cv2
 import numpy as np
+from django.conf import settings
+from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from rest_framework import status
+from face_recognition import face_encodings, face_locations, face_distance
 
-def match_form_html(request):
-    """
-    매칭 키 입력용 폼 HTML을 렌더링합니다.
-    """
-    return render(request, 'video_platform/match_form.html')
+from .models import Video, VerificationCode
+from .forms import VideoUploadForm
+from .serializers import VideoSerializer
+
+import logging
+import subprocess
+
+# 로깅 설정
+logger = logging.getLogger(__name__)
 
 
+# Match Videos HTML
 def match_videos_html(request):
-    """
-    사용자 얼굴 키를 기반으로 동영상 매칭 결과를 HTML로 렌더링.
-    """
-    if request.method == 'POST':
-        key = request.POST.get('key')
-        if not key:
-            return render(request, 'video_platform/match_results.html', {
-                "matched_videos": [],
-                "error": "Key is required."
-            })
+    logger.info("match_videos_html called.")
+    if request.method != 'POST':
+        logger.error("Invalid request method.")
+        return JsonResponse({"error": "Invalid request method."}, status=405)
 
-        # 키 파일 경로 구성
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        logger.info(f"Request data: {data}")
+
+        key = data.get('key')
+        if not key:
+            logger.error("Key is missing in request.")
+            return JsonResponse({"error": "Key is required."}, status=400)
+
         key_path = os.path.join(settings.MEDIA_ROOT, 'face_encodings', f"{key}.pkl")
         if not os.path.exists(key_path):
-            return render(request, 'video_platform/match_results.html', {
-                "matched_videos": [],
-                "error": "Key file not found."
-            })
+            logger.error(f"Key file not found at: {key_path}")
+            return JsonResponse({"error": "Key file not found."}, status=404)
 
-        # 키 파일 로드
-        try:
-            with open(key_path, 'rb') as f:
-                user_embeddings = pickle.load(f)
-        except Exception as e:
-            return render(request, 'video_platform/match_results.html', {
-                "matched_videos": [],
-                "error": f"Failed to load key file: {str(e)}"
-            })
+        with open(key_path, 'rb') as f:
+            known_encodings = pickle.load(f)
+            if not isinstance(known_encodings, list):
+                logger.error("Invalid key file format.")
+                return JsonResponse({"error": "Invalid key file format."}, status=500)
 
-        # 로컬 디렉토리(media/videos)에서 동영상 파일 검색
         videos_dir = os.path.join(settings.MEDIA_ROOT, 'videos')
+        if not os.path.exists(videos_dir):
+            logger.error("Videos directory not found.")
+            return JsonResponse({"error": "Videos directory not found."}, status=404)
+
         video_files = [os.path.join(videos_dir, f) for f in os.listdir(videos_dir) if f.endswith('.mp4')]
+        logger.info(f"Found video files: {video_files}")
 
         matched_videos = []
-
         for video_path in video_files:
-            matched_frames = 0
-
-            # 동영상 프레임 단위로 처리
             cap = cv2.VideoCapture(video_path)
-            fps = int(cap.get(cv2.CAP_PROP_FPS))  # FPS 읽기
-            frame_interval = max(fps // 2, 1)  # 초당 2개의 프레임 처리 (최소 1)
+            if not cap.isOpened():
+                logger.warning(f"Failed to open video file: {video_path}")
+                continue
 
+            fps = int(cap.get(cv2.CAP_PROP_FPS))
+            frame_interval = max(fps // 2, 1)
             frame_count = 0
+            matched = False
+
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
                     break
 
-                # 특정 간격의 프레임만 처리
                 if frame_count % frame_interval == 0:
-                    # 프레임에서 얼굴 검출 및 특징점 추출
-                    face = detect_face(frame)
-                    if face is not None:
-                        face_embedding = extract_features(face)
+                    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    frame_encodings = face_encodings(rgb_frame)
 
-                        # 사용자 특징 벡터와 비교
-                        for user_embedding in user_embeddings:
-                            similarity = np.linalg.norm(user_embedding - face_embedding)
-                            if similarity < 0.6:  # FaceNet 임계값
-                                matched_frames += 1
+                    if not isinstance(frame_encodings, list) or len(frame_encodings) == 0:
+                        logger.info("No face encodings found in the frame.")
+                        continue
+
+                    for face_encoding in frame_encodings:
+                        distances = face_distance(np.array(known_encodings), face_encoding)
+                        if len(distances) == 0:
+                            logger.warning("Distances calculation failed.")
+                            continue
+
+                        best_match_index = np.argmin(distances)
+                        best_distance = distances[best_match_index]
+
+                        if best_distance < 0.3:
+                            match_time = frame_count / fps
+                            matched_videos.append({
+                                "video_name": os.path.basename(video_path),
+                                "first_match_time": float(match_time),
+                                "match_similarity": float(best_distance)
+                            })
+                            matched = True
+                            break
+
+                if matched:
+                    break
 
                 frame_count += 1
             cap.release()
 
-            if matched_frames > 0:
-                matched_videos.append({
-                    "video_name": os.path.basename(video_path),
-                    "matched_frames": matched_frames
-                })
+        logger.info("Matching process completed successfully.")
+        return JsonResponse({"matched_videos": matched_videos}, status=200)
 
-        return render(request, 'video_platform/match_results.html', {
-            "matched_videos": matched_videos
-        })
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error: {e}")
+        return JsonResponse({"error": "Invalid JSON input."}, status=400)
+    except Exception as e:
+        logger.error(f"Unexpected error occurred: {e}")
+        return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=500)
 
-    return render(request, 'video_platform/match_results.html', {
-        "matched_videos": [],
-        "error": "Invalid request method."
-    })
+# Get Verification Code
+@api_view(['GET'])
+def get_verification_code(request, input_code):
+    verification = get_object_or_404(VerificationCode, verification_code=input_code)
+    return Response({
+        'user_id': verification.user.id,
+        'verification_code': verification.verification_code
+    }, status=200)
 
 
+# Match Form HTML
+def match_form_html(request):
+    return render(request, 'video_platform/match_form.html')
+
+
+# Upload Video
 def upload_video(request):
-    """
-    HTML 렌더링을 통해 비디오 업로드를 처리하는 뷰
-    """
     if request.method == 'POST':
         form = VideoUploadForm(request.POST, request.FILES)
         if form.is_valid():
             video_name = form.cleaned_data['video_name']
             video_file = form.cleaned_data['video_file']
 
-            # Video 모델 인스턴스 생성 및 저장
             video = Video.objects.create(
                 video_name=video_name,
                 file_path=video_file
             )
+            path = default_storage.save(video.file_path.name, ContentFile(video_file.read()))
             return render(request, 'video_platform/upload_success.html', {'video': video})
     else:
         form = VideoUploadForm()
-
     return render(request, 'video_platform/upload_video.html', {'form': form})
+
 
 # REST API for Video Upload
 class VideoUploadView(APIView):
-    """
-    Handles video upload via API (JSON request/response).
-    """
     def post(self, request, *args, **kwargs):
         video_file = request.FILES.get('file')
         video_name = request.data.get('video_name')
 
-        # 파일과 비디오 이름이 제공되지 않으면 오류 반환
         if not video_file or not video_name:
             return Response({"error": "Both video file and video name are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 파일을 MEDIA_ROOT 경로에 저장
         video_instance = Video(video_name=video_name, file_path=video_file.name)
         video_instance.save()
 
-        # 파일을 실제 디스크에 저장
         video_path = os.path.join(settings.MEDIA_ROOT, video_file.name)
         with open(video_path, 'wb+') as destination:
             for chunk in video_file.chunks():
@@ -151,29 +174,31 @@ class VideoUploadView(APIView):
         serializer = VideoSerializer(video_instance)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
 # REST API for Video List
 class VideoListView(APIView):
-    """
-    Handles video list retrieval.
-    """
     def get(self, request, *args, **kwargs):
         videos = Video.objects.all()
         serializer = VideoSerializer(videos, many=True)
-
-        # 파일 경로에 MEDIA_URL을 추가하여 실제 파일에 접근할 수 있게 함
         for video in serializer.data:
             video['file_path'] = request.build_absolute_uri(os.path.join(settings.MEDIA_URL, video['file_path']))
-
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-# REST API for Verification Code
-@api_view(['GET'])
-def get_verification_code(request, input_code):
-    """
-    Retrieves verification code details.
-    """
-    verification = get_object_or_404(VerificationCode, verification_code=input_code)
-    return Response({
-        'user_id': verification.user.id,
-        'verification_code': verification.verification_code
-    }, status=status.HTTP_200_OK)
+
+# Process Video View
+def process_video_view(request):
+    if request.method == 'POST':
+        try:
+            video_dir = os.path.join(settings.MEDIA_ROOT, "videos")
+            script_path = os.path.join(settings.BASE_DIR, "video_processing.py")
+            result = subprocess.run(
+                ["python", script_path],
+                capture_output=True,
+                text=True,
+                cwd=video_dir
+            )
+            output = result.stdout if result.returncode == 0 else result.stderr
+            return JsonResponse({"result": output}, status=200)
+        except Exception as e:
+            return JsonResponse({"error": f"Error processing video: {str(e)}"}, status=500)
+    return JsonResponse({"error": "Invalid request method."}, status=405)

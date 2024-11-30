@@ -3,16 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Match Videos</title>
+    <title>Real-Time Video Matching</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f4f4f4;
+            text-align: left;
+        }
+    </style>
+    <script>
+        let isMatching = false;
+
+        async function startMatching() {
+            // 중복 매칭 방지
+            if (isMatching) {
+                alert('Matching is already in progress.');
+                return;
+            }
+
+            // 입력값 확인
+            const key = document.getElementById('key').value.trim();
+            if (!key) {
+                alert('Please enter a valid face key.');
+                return;
+            }
+
+            // 매칭 상태 업데이트
+            const statusDiv = document.getElementById('match-status');
+            statusDiv.innerHTML = '<p>Matching in progress...</p>';
+            isMatching = true;
+
+            try {
+                // CSRF 토큰 가져오기
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                // API 요청
+                const response = await fetch('/video_platform/match/json/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken, // CSRF 토큰 추가
+                    },
+                    body: JSON.stringify({ key: key }) // 요청 데이터
+                });
+
+                // 응답 확인
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.error) {
+                    statusDiv.innerHTML = `<p style="color:red;">Error: ${data.error}</p>`;
+                } else {
+                    updateResults(data.matched_videos);
+                }
+            } catch (error) {
+                // 에러 처리
+                statusDiv.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
+            } finally {
+                isMatching = false; // 매칭 상태 초기화
+            }
+        }
+
+        function updateResults(matchedVideos) {
+            // 결과 출력
+            const statusDiv = document.getElementById('match-status');
+            if (!matchedVideos || matchedVideos.length === 0) {
+                statusDiv.innerHTML = '<p>No matches found yet. Keep waiting...</p>';
+                return;
+            }
+
+            // 매칭 결과 테이블 생성
+            let resultHTML = `
+                <table>
+                    <tr>
+                        <th>Video Name</th>
+                        <th>Match Time (Seconds)</th>
+                        <th>Match Similarity (%)</th>
+                    </tr>`;
+            matchedVideos.forEach(video => {
+                resultHTML += `
+                    <tr>
+                        <td>${video.video_name}</td>
+                        <td>${video.first_match_time.toFixed(2)}</td>
+                        <td>${(video.match_similarity * 100).toFixed(2)}%</td>
+                    </tr>`;
+            });
+            resultHTML += '</table>';
+            statusDiv.innerHTML = resultHTML;
+        }
+    </script>
 </head>
 <body>
-    <h1>Match Videos</h1>
-    <form action="/video_platform/match/html/" method="POST">
+    <h1>Real-Time Video Matching</h1>
+    <!-- 매칭 키 입력 폼 -->
+    <form onsubmit="event.preventDefault(); startMatching();" method="post">
         {% csrf_token %}
         <label for="key">Enter Face Key:</label>
         <input type="text" id="key" name="key" required>
         <br><br>
         <button type="submit">Match</button>
     </form>
+
+    <!-- 매칭 상태 및 결과 출력 -->
+    <div id="match-status" style="margin-top: 20px;">
+        <!-- 실시간 매칭 결과 -->
+    </div>
 </body>
 </html>

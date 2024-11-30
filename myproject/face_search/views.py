@@ -6,8 +6,11 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.conf import settings
 from .models import FaceEncodingFile, VideoPlatformResult  # 모델 임포트
-from .utils import detect_face, extract_features  # 유틸리티 함수
 from django.views.decorators.csrf import csrf_exempt  # CSRF 비활성화 데코레이터
+from io import BytesIO
+from PIL import Image
+import numpy as np  # NumPy 라이브러리 추가
+import face_recognition  # facerecognition 라이브러리 추가
 
 def generate_key_test_page(request):
     """
@@ -31,34 +34,26 @@ def create_face_key(request):
         try:
             # 파일 처리
             for file in files:
-                unique_filename = f"{random_key}_{file.name}"  # 고유 파일 이름 생성
-                temp_path = os.path.join(settings.MEDIA_ROOT, unique_filename)
-                print(f"Saving temporary file to: {temp_path}")
-
-                # 디렉토리 생성 확인
-                os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
-
-                # 파일 저장
-                with open(temp_path, 'wb') as f:
-                    for chunk in file.chunks():
-                        f.write(chunk)
-
-                # 저장된 파일 경로 확인
-                if not os.path.exists(temp_path):
-                    raise ValueError(f"File not found at path: {temp_path}")
-
+                # 메모리 상에서 파일 처리
+                image_stream = BytesIO(file.read())
+                image = Image.open(image_stream).convert('RGB')  # RGB로 변환
+                image_array = np.array(image)  # PIL 이미지를 NumPy 배열로 변환
+                
                 # 얼굴 검출 및 특징 추출
-                face = detect_face(temp_path)
-                if face is not None:
+                face_locations = face_recognition.face_locations(image_array)  # 얼굴 위치 검출
+                if face_locations:
                     print("Face detected successfully.")
-                    embedding = extract_features(face)
-                    embeddings.append(embedding)
+                    face_encodings = face_recognition.face_encodings(image_array, face_locations)  # 얼굴 특징 추출
+                    if face_encodings:
+                        embeddings.append(face_encodings[0])  # 첫 번째 얼굴의 임베딩만 저장
+                    else:
+                        raise ValueError(f"Failed to extract features from {file.name}")
                 else:
                     print(f"Face not detected in {file.name}")
                     raise ValueError(f"Face not detected in {file.name}")
 
             if len(embeddings) != 10:
-                raise ValueError("Failed to process all images.")
+                raise ValueError("Failed to process all images. Please ensure all images contain recognizable faces.")
 
             # 랜덤 키 생성
             output_path = os.path.join(settings.MEDIA_ROOT, 'face_encodings', f"{random_key}.pkl")
