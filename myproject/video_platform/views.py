@@ -132,7 +132,7 @@ def get_verification_code(request, input_code):
 
 # Match Form HTML
 def match_form_html(request):
-    return render(request, 'video_platform/match_form.html')
+    return render(request, 'match_form.html')
 
 
 # Upload Video
@@ -148,10 +148,10 @@ def upload_video(request):
                 file_path=video_file
             )
             path = default_storage.save(video.file_path.name, ContentFile(video_file.read()))
-            return render(request, 'video_platform/upload_success.html', {'video': video})
+            return render(request, 'upload_success.html', {'video': video})
     else:
         form = VideoUploadForm()
-    return render(request, 'video_platform/upload_video.html', {'form': form})
+    return render(request, 'upload_video.html', {'form': form})
 
 
 # REST API for Video Upload

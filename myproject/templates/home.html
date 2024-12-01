@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}
+Video List - ASAP
+{% endblock %}
+
+{% block content %}
+<header class="main-header">
+    <h1>ASAP</h1>
+    <h2>VIDEO PLATFORM</h2>
+    <p>You can watch video here.</p>
+</header>
+
+<!-- 회색 박스 -->
+<div class="video-list-container">
+    <ul class="video-grid">
+        {% for video in videos %}
+        <li>
+            <img src="{{ video.thumbnail_url }}" alt="Video Thumbnail">
+            <p>{{ video.video_name }}</p>
+            <a href="{{ video.file_path.url }}" target="_blank">Watch Video</a>
+        </li>
+        {% empty %}
+    
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

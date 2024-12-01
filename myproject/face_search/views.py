@@ -16,7 +16,7 @@ def generate_key_test_page(request):
     """
     테스트 키 생성 페이지를 렌더링합니다.
     """
-    return render(request, 'face_search/test_generate_key.html')
+    return render(request, 'test_generate_key.html')
 
 @csrf_exempt
 def create_face_key(request):

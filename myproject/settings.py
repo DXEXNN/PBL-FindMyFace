@@ -67,7 +67,7 @@ ROOT_URLCONF = 'myproject.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # 전역 템플릿 디렉토리 추가 가능
+        'DIRS': [os.path.join(BASE_DIR, 'myproject', 'templates')],  # 전역 템플릿 디렉토리 추가 가능
         'APP_DIRS': True,  # 앱 내부 templates 디렉토리 검색 활성화
         'OPTIONS': {
             'context_processors': [
@@ -131,10 +131,13 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
-STATIC_URL = '/static/'
 
-#방금 추가
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "video_platform/static")]
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'  # 정적 파일 URL 경로
+STATICFILES_DIRS = [
+    BASE_DIR / "myproject" / "static" 
+]  # 개발 시 사용할 정적 파일 디렉터리
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # 정적 파일을 수집할 최종 디렉터리
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field

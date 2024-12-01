@@ -18,8 +18,10 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
-from myproject.accounts.views import UserViewSet
-from myproject.video_platform.views import upload_video  # upload_video 함수 추가
+from myproject.accounts.views import register_page, UserViewSet
+from myproject.video_platform.views import  upload_video  # upload_video 함수 추가
+from . import views
+from django.views.generic import TemplateView
 
 user_lookup = UserViewSet.as_view({
     'get': 'retrieve_key'
@@ -29,9 +31,16 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('face_search/', include('myproject.face_search.urls')),  # face_search 앱 URL 연결
     
+    # 프런트용
+    path('', TemplateView.as_view(template_name='home.html'), name='home'),  # 홈
+    path('first-fmf/', TemplateView.as_view(template_name='first_fmf.html'), name='first-fmf'),  # 첫 페이지
+    path('find-my-face/', views.find_my_face, name='find-my-face'),  # FIND MY FACE
+    
     # 회원가입 페이지
-    path('accounts/register', UserViewSet.as_view({'post': 'create'}), name='user-register'),  # 회원가입
-
+    path('accounts/register/', register_page, name='register-page'),
+    path('accounts/register-api', UserViewSet.as_view({'post': 'create'}), name='user-register'),  # 회원가입 API
+    path('accounts/lookup/', user_lookup, name='user-lookup'),
+    
     # 회원 조회 페이지: 존재하지 않는 이메일일 경우 회원가입 페이지로 리다이렉트
     path('accounts/lookup/', user_lookup, name='user-lookup'),
     

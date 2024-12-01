@@ -2,7 +2,27 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from .serializers import UserSerializer
+from django.http import JsonResponse
 from .models import CustomUser
+from django.shortcuts import render, redirect
+
+# 일반 Django 뷰 함수로 작성
+def register_page(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+
+        # 이메일 중복 체크
+        if CustomUser.objects.filter(email=email).exists():
+            return JsonResponse({'error': '동일한 이메일이 이미 존재합니다.'}, status=400)
+
+        # 사용자 생성
+        user = CustomUser.objects.create(email=email)
+        user.save()
+
+        # 회원가입 완료 후 리디렉션
+        return redirect('/face_search/generate_key_test/')  # 성공 시 리디렉션
+
+    return render(request, 'register.html')
 
 class UserViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
